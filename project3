@@ -1,0 +1,75 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Lists to store user input
+dates = []
+times = []
+amounts = []
+
+# Function to collect user input
+def collect_data():
+    while True:
+        date_input = input("Enter date (YYYY-MM-DD) or 'exit' to finish: ")
+        if date_input.lower() == 'exit':
+            break
+        time_input = input("Enter time (HH:MM): ")
+        amount_input = float(input("Enter water consumed (ml): "))
+
+        dates.append(date_input)
+        times.append(time_input)
+        amounts.append(amount_input)
+
+    # Create DataFrame from collected data
+    df = pd.DataFrame({
+        'Date': pd.to_datetime(dates).date,
+        'Time': pd.to_datetime(times, format='%H:%M').time,
+        'Amount_ml': amounts
+    })
+    return df
+
+# Function to classify hydration status
+def classify_hydration(amounts_np):
+    status = []
+    for amt in amounts_np:
+        if amt >= 2000:
+            status.append("Good")
+        elif amt >= 1200:
+            status.append("Moderate")
+        else:
+            status.append("Low")
+    return status
+
+# Collect data
+df = collect_data()
+
+# Convert amount column to NumPy array
+amount_array = np.array(df['Amount_ml'])
+
+# Group total intake per day
+df['Date'] = pd.to_datetime(df['Date']).dt.date
+daily = df.groupby('Date')['Amount_ml'].sum().reset_index()
+
+# Assign hydration status
+hydration_status = classify_hydration(np.array(daily['Amount_ml']))
+daily['Hydration'] = hydration_status
+
+# Plot daily water intake
+plt.figure(figsize=(10, 5))
+plt.plot(daily['Date'], daily['Amount_ml'], marker='o')
+plt.axhline(2000, color='green', linestyle='--', label='Target (2L)')
+plt.axhline(1200, color='orange', linestyle='--', label='Minimum (1.2L)')
+plt.title('Daily Water Intake')
+plt.xlabel('Date')
+plt.ylabel('Water Consumed (ml)')
+plt.xticks(rotation=45)
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# Plot hydration status distribution
+daily['Hydration'].value_counts().plot.pie(autopct='%1.1f%%', startangle=90)
+plt.title('Hydration Status Distribution')
+plt.ylabel('')
+plt.show()
